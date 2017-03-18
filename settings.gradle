@@ -35,3 +35,6 @@ include ':embeddable'
 project(":embeddable").name = "TweetWallFX-Embeddable"
 include ':embeddabletest'
 project(":embeddabletest").name = "TweetWallFX-EmbeddableTest"
+
+include ':bison'
+project(":bison").name = "TweetWallFX-Bison"
