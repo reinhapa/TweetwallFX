@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -40,7 +39,6 @@ import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 import javafx.concurrent.Task;
 import javafx.scene.image.Image;
 import org.apache.log4j.LogManager;
@@ -134,23 +132,19 @@ public class ImageMosaicDataProvider implements DataProvider {
 
     private static void downloadContent(URL url, File file) {
         file.deleteOnExit();
-        boolean directoryCreated = file.getParentFile().mkdirs();
-        if (directoryCreated) {
+        if (file.getParentFile().mkdirs()) {
             log.info("directory created " + file.getPath());
         }
 
         try (InputStream inputStream = url.openStream();
                 FileOutputStream outputStream = new FileOutputStream(file)) {
-
             int read = 0;
             byte[] bytes = new byte[1024];
 
             while ((read = inputStream.read(bytes)) != -1) {
                 outputStream.write(bytes, 0, read);
             }
-            
         } catch (IOException exception) {
-
         }
     }
 
