@@ -29,6 +29,14 @@ Update the `tweetwallConfig.json` file with your OAuth values as follows:
         "query" : "#myevent OR #someothertag",
         "title" : "The JavaFX Tweetwall for my Event",
         "stylesheetResource" : "tweetwall.css"
+    },
+    "connectionSettings": {
+        "proxy": {
+            "host": "127.0.0.1",
+            "port": "3128",
+            "user": "",
+            "password": ""
+        }
     }
 }
 ----
