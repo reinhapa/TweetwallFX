@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2014-2016 TweetWallFX
+ * Copyright 2014-2017 TweetWallFX
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,26 +23,48 @@
  */
 package org.tweetwallfx.controls.steps;
 
-import org.tweetwallfx.controls.WordleSkin;
+import java.util.Arrays;
+import java.util.Collection;
+import org.tweetwallfx.controls.dataprovider.DataProvider;
 import org.tweetwallfx.controls.dataprovider.TweetDataProvider;
-import org.tweetwallfx.controls.stepengine.AbstractStep;
+import org.tweetwallfx.controls.stepengine.Step;
 import org.tweetwallfx.controls.stepengine.StepEngine.MachineContext;
+import org.tweetwallfx.controls.stepengine.config.StepEngineSettings;
 
 /**
- *
- * @author Sven
+ * @author Sven Reimers
  */
-public class NextTweetStep extends AbstractStep {
+public class NextTweetStep implements Step {
 
-    @Override
-    public long preferredStepDuration(MachineContext context) {
-        return 0;
+    private NextTweetStep() {
+        // prevent external instantiation
     }
 
     @Override
-    public void doStep(MachineContext context) {
-        WordleSkin skin = (WordleSkin) context.get("WordleSkin");
-        skin.getSkinnable().getDataProvider(TweetDataProvider.class).nextTweet();
+    public void doStep(final MachineContext context) {
+        context.getDataProvider(TweetDataProvider.class).nextTweet();
         context.proceed();
+    }
+
+    /**
+     * Implementation of {@link Step.Factory} as Service implementation creating
+     * {@link NextTweetStep}.
+     */
+    public static final class Factory implements Step.Factory {
+
+        @Override
+        public NextTweetStep create(final StepEngineSettings.StepDefinition stepDefinition) {
+            return new NextTweetStep();
+        }
+
+        @Override
+        public Class<NextTweetStep> getStepClass() {
+            return NextTweetStep.class;
+        }
+
+        @Override
+        public Collection<Class<? extends DataProvider>> getRequiredDataProviders(final StepEngineSettings.StepDefinition stepSettings) {
+            return Arrays.asList(TweetDataProvider.class);
+        }
     }
 }

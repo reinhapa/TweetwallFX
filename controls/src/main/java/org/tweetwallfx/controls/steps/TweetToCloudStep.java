@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2014-2015 TweetWallFX
+ * Copyright 2014-2017 TweetWallFX
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,9 @@
  */
 package org.tweetwallfx.controls.steps;
 
-//import org.tweetwallfx.controls.Wordle;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -37,56 +38,54 @@ import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
-import org.apache.log4j.Logger;
 import org.tweetwallfx.controls.TweetLayout;
 import org.tweetwallfx.controls.Word;
 import org.tweetwallfx.controls.WordleLayout;
 import org.tweetwallfx.controls.WordleSkin;
+import org.tweetwallfx.controls.dataprovider.DataProvider;
 import org.tweetwallfx.controls.dataprovider.TagCloudDataProvider;
-import org.tweetwallfx.controls.stepengine.AbstractStep;
+import org.tweetwallfx.controls.stepengine.Step;
 import org.tweetwallfx.controls.stepengine.StepEngine.MachineContext;
+import org.tweetwallfx.controls.stepengine.config.StepEngineSettings;
 import org.tweetwallfx.controls.transition.FontSizeTransition;
 import org.tweetwallfx.controls.transition.LocationTransition;
 
 /**
- *
  * @author Jörg Michelberger
  */
-public class TweetToCloudStep extends AbstractStep {
+public class TweetToCloudStep implements Step {
 
-    @Override
-    public long preferredStepDuration(MachineContext context) {
-        return 10000;
+    private TweetToCloudStep() {
+        // prevent external instantiation
     }
 
     @Override
-    public void doStep(MachineContext context) {
-//        context.getWordle().setLayoutMode(Wordle.LayoutMode.TWEET);
-        Logger startupLogger = Logger.getLogger("org.tweetwallfx.startup");
-        startupLogger.trace("tweetToCloud()");
-        
-        WordleSkin wordleSkin = (WordleSkin)context.get("WordleSkin");
-//        Wordle wordle = (Wordle)context.get("Wordle");
-        
-        List<Word> sortedWords = wordleSkin.getSkinnable().getDataProvider(TagCloudDataProvider.class).getWords();
+    public java.time.Duration preferredStepDuration(final MachineContext context) {
+        return java.time.Duration.ofSeconds(10);
+    }
+
+    @Override
+    public void doStep(final MachineContext context) {
+        List<Word> sortedWords = context.getDataProvider(TagCloudDataProvider.class).getWords();
 
         if (sortedWords.isEmpty()) {
             return;
         }
 
+        WordleSkin wordleSkin = (WordleSkin) context.get("WordleSkin");
         List<Word> limitedWords = sortedWords.stream().limit(wordleSkin.getDisplayCloudTags()).collect(Collectors.toList());
         limitedWords.sort(Comparator.reverseOrder());
- 
+
         Bounds layoutBounds = wordleSkin.getPane().getLayoutBounds();
 
-        WordleLayout.Configuration configuration = new WordleLayout.Configuration(limitedWords, wordleSkin.getFont(), wordleSkin.getFontSizeMin(), wordleSkin.getFontSizeMax(),layoutBounds);
+        WordleLayout.Configuration configuration = new WordleLayout.Configuration(limitedWords, wordleSkin.getFont(), wordleSkin.getFontSizeMin(), wordleSkin.getFontSizeMax(), layoutBounds);
         if (null != wordleSkin.getLogo()) {
             configuration.setBlockedAreaBounds(wordleSkin.getLogo().getBoundsInParent());
         }
         if (null != wordleSkin.getSecondLogo()) {
             configuration.setBlockedAreaBounds(wordleSkin.getSecondLogo().getBoundsInParent());
         }
-        
+
         WordleLayout cloudWordleLayout = WordleLayout.createWordleLayout(configuration);
         Duration defaultDuration = Duration.seconds(1.5);
 
@@ -159,7 +158,7 @@ public class TweetToCloudStep extends AbstractStep {
             });
             fadeOutTransitions.add(ft);
         }
-        
+
         ParallelTransition fadeOuts = new ParallelTransition();
         fadeOuts.getChildren().addAll(fadeOutTransitions);
         ParallelTransition moves = new ParallelTransition();
@@ -170,5 +169,27 @@ public class TweetToCloudStep extends AbstractStep {
 
         morph.setOnFinished(e -> context.proceed());
         morph.play();
+    }
+
+    /**
+     * Implementation of {@link Step.Factory} as Service implementation creating
+     * {@link TweetToCloudStep}.
+     */
+    public static final class Factory implements Step.Factory {
+
+        @Override
+        public TweetToCloudStep create(final StepEngineSettings.StepDefinition stepDefinition) {
+            return new TweetToCloudStep();
+        }
+
+        @Override
+        public Class<TweetToCloudStep> getStepClass() {
+            return TweetToCloudStep.class;
+        }
+
+        @Override
+        public Collection<Class<? extends DataProvider>> getRequiredDataProviders(final StepEngineSettings.StepDefinition stepSettings) {
+            return Arrays.asList(TagCloudDataProvider.class);
+        }
     }
 }

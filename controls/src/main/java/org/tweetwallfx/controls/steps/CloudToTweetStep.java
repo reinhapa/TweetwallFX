@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2014-2015 TweetWallFX
+ * Copyright 2014-2017 TweetWallFX
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,24 +23,12 @@
  */
 package org.tweetwallfx.controls.steps;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.log4j.Logger;
-import org.tweetwallfx.controls.TweetLayout;
-import org.tweetwallfx.controls.TweetWordNodeFactory;
-import org.tweetwallfx.controls.Word;
-import org.tweetwallfx.controls.WordleSkin;
-import org.tweetwallfx.controls.dataprovider.TweetDataProvider;
-import org.tweetwallfx.controls.stepengine.AbstractStep;
-import org.tweetwallfx.controls.stepengine.StepEngine.MachineContext;
-import org.tweetwallfx.controls.transition.FontSizeTransition;
-import org.tweetwallfx.controls.transition.LocationTransition;
-import org.tweetwallfx.tweet.api.Tweet;
-
-//import org.tweetwallfx.controls.Wordle;
 import de.jensd.fx.glyphs.GlyphsStack;
 import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import javafx.animation.FadeTransition;
 import javafx.animation.ParallelTransition;
 import javafx.animation.SequentialTransition;
@@ -60,29 +48,42 @@ import javafx.scene.layout.Pane;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
+import org.tweetwallfx.controls.TweetLayout;
+import org.tweetwallfx.controls.TweetWordNodeFactory;
+import org.tweetwallfx.controls.Word;
+import org.tweetwallfx.controls.WordleSkin;
+import org.tweetwallfx.controls.dataprovider.DataProvider;
+import org.tweetwallfx.controls.dataprovider.TweetDataProvider;
+import org.tweetwallfx.controls.stepengine.Step;
+import org.tweetwallfx.controls.stepengine.StepEngine.MachineContext;
+import org.tweetwallfx.controls.stepengine.config.StepEngineSettings;
+import org.tweetwallfx.controls.transition.FontSizeTransition;
+import org.tweetwallfx.controls.transition.LocationTransition;
+import org.tweetwallfx.tweet.api.Tweet;
 
 /**
- *
  * @author Jörg Michelberger
  */
-public class CloudToTweetStep extends AbstractStep {
+public class CloudToTweetStep implements Step {
+
+    private CloudToTweetStep() {
+        // prevent external instantiation
+    }
 
     //TODO: push this attributes into doStep!
     private Point2D lowerLeft;  //OMG, how can this be piped through a lambda?
     private Point2D tweetLineOffset;  //OMG, how can this be piped through a lambda?
 
     @Override
-    public long preferredStepDuration(MachineContext context) {
-        return 5000;
+    public java.time.Duration preferredStepDuration(final MachineContext context) {
+        return java.time.Duration.ofSeconds(5);
     }
 
     @Override
-    public void doStep(MachineContext context) {
-        Logger.getLogger("org.tweetwallfx.startup").trace("cloudToTweet()");
-
+    public void doStep(final MachineContext context) {
         WordleSkin wordleSkin = (WordleSkin) context.get("WordleSkin");
         Bounds layoutBounds = wordleSkin.getPane().getLayoutBounds();
-        Tweet displayTweet = wordleSkin.getSkinnable().getDataProvider(TweetDataProvider.class).getTweet();
+        Tweet displayTweet = context.getDataProvider(TweetDataProvider.class).getTweet();
         Tweet originalTweet = getOriginalTweet(displayTweet);
 
         Point2D minPosTweetText = new Point2D(layoutBounds.getWidth() / 6d, (layoutBounds.getHeight() - wordleSkin.getLogo().getImage().getHeight()) / 4d);
@@ -347,5 +348,27 @@ public class CloudToTweetStep extends AbstractStep {
         }
 
         return originalTweet;
+    }
+
+    /**
+     * Implementation of {@link Step.Factory} as Service implementation creating
+     * {@link CloudToTweetStep}.
+     */
+    public static final class Factory implements Step.Factory {
+
+        @Override
+        public CloudToTweetStep create(final StepEngineSettings.StepDefinition stepDefinition) {
+            return new CloudToTweetStep();
+        }
+
+        @Override
+        public Class<CloudToTweetStep> getStepClass() {
+            return CloudToTweetStep.class;
+        }
+
+        @Override
+        public Collection<Class<? extends DataProvider>> getRequiredDataProviders(final StepEngineSettings.StepDefinition stepSettings) {
+            return Arrays.asList(TweetDataProvider.class);
+        }
     }
 }

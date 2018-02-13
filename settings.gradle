@@ -1,3 +1,27 @@
+/*
+ * The MIT License
+ *
+ * Copyright 2014-2017 TweetWallFX
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
 rootProject.name='TweetWallFX'
 
 include ':config'
@@ -14,29 +38,40 @@ include ':core'
 project(":core").name = "TweetWallFX-Core"
 include ':2d'
 project(":2d").name = "TweetWallFX-2D"
-include ':3d'
-project(":3d").name = "TweetWallFX-3D"
+include ':util'
+project(":util").name = "TweetWallFX-Utility"
 
 include ':devoxx'
 project(":devoxx").name = "TweetWallFX-Devoxx"
 include ':devoxx-2015'
 project(":devoxx-2015").name = "TweetWallFX-Devoxx-2015"
+include ':devoxx-api-cfp'
+project(":devoxx-api-cfp").name = "TweetWallFX-Devoxx-API-CFP"
 include ':devoxx-2016'
 project(":devoxx-2016").name = "TweetWallFX-Devoxx-2016"
 include ':devoxx-2017-fr'
 project(':devoxx-2017-fr').name = 'TweetWallFX-Devoxx-2017-FR'
 include ':devoxx-2017-us'
 project(':devoxx-2017-us').name = 'TweetWallFX-Devoxx-2017-US'
+include ':devoxx-2017-be'
+include ':devoxx-2017-be:cfp-impl'
+project(':devoxx-2017-be:cfp-impl').name = 'CFP-Implementation-2017-BE'
+include ':devoxx-2017-be:exhibition'
+project(':devoxx-2017-be:exhibition').name = 'Exhibition'
+include ':devoxx-2017-be:cinema'
+project(':devoxx-2017-be:cinema').name = 'Cinema'
+//project(':devoxx-2017-be').name = 'TweetWallFX-Devoxx-2017-BE'
 include ':netbeans'
 project(":netbeans").name = "TweetWallFX-NetBeans"
 include ':javaone'
 project(":javaone").name = "TweetWallFX-JavaOne"
 include ':generic2d'
 project(":generic2d").name = "TweetWallFX-Generic2D"
-include ':embeddable'
-project(":embeddable").name = "TweetWallFX-Embeddable"
-include ':embeddabletest'
-project(":embeddabletest").name = "TweetWallFX-EmbeddableTest"
 
-include ':bison'
-project(":bison").name = "TweetWallFX-Bison"
+// disabled subproject for future reference
+//include ':3d'
+//project(':3d').name = 'TweetWallFX-3D'
+//include ':embeddable'
+//project(':embeddable').name = 'TweetWallFX-Embeddable'
+//include ':embeddabletest'
+//project(':embeddabletest').name = 'TweetWallFX-EmbeddableTest'

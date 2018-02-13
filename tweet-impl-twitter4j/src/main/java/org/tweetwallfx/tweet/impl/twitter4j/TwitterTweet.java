@@ -108,7 +108,7 @@ final class TwitterTweet implements Tweet {
                     .map(ume -> new TwitterUserMentionTweetEntry(ume))
                     .toArray(c -> new UserMentionTweetEntry[c]);
         }
-        
+
         retweetedTweet = isRetweet()
                 ? new TwitterTweet(status.getRetweetedStatus())
                 : null;
@@ -172,6 +172,11 @@ final class TwitterTweet implements Tweet {
     @Override
     public boolean isRetweet() {
         return status.isRetweet();
+    }
+
+    @Override
+    public boolean isTruncated() {
+        return status.isTruncated();
     }
 
     @Override
@@ -240,6 +245,11 @@ final class TwitterTweet implements Tweet {
         @Override
         public boolean isVerified() {
             return user.isVerified();
+        }
+
+        @Override
+        public int getFollowersCount() {
+            return user.getFollowersCount();
         }
     }
 

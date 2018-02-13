@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2014-2016 TweetWallFX
+ * Copyright 2014-2017 TweetWallFX
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,69 +27,69 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.tweetwallfx.config.Configuration;
+import org.tweetwallfx.config.TweetwallSettings;
 import org.tweetwallfx.tweet.api.Tweet;
 import org.tweetwallfx.tweet.api.TweetQuery;
-import org.tweetwallfx.tweet.api.TweetStream;
 import org.tweetwallfx.tweet.api.Tweeter;
 
-/**
- *
- * @author sven
- */
-public class TweetDataProvider implements DataProvider {
-    
-    private static final Logger log = LogManager.getLogger(TweetDataProvider.class);
-    private static final int HISTORY_SIZE = 20; 
+public class TweetDataProvider implements DataProvider.NewTweetAware {
 
-    private final Tweeter tweeter;
-    
+    private static final Logger LOGGER = LogManager.getLogger(TweetDataProvider.class);
+    private static final int HISTORY_SIZE = 50;
+
     private volatile Tweet tweet;
     private volatile Tweet nextTweet;
-    private final String searchText;
+    private final String searchText = Configuration.getInstance().getConfigTyped(TweetwallSettings.CONFIG_KEY, TweetwallSettings.class).getQuery();
     private final Deque<Long> history = new ArrayDeque<>();
     private volatile List<Tweet> lastTweetCollection;
-    
-    public TweetDataProvider(Tweeter tweeter, TweetStream tweetStream, final String searchText) {
-        this.tweeter = tweeter;
-        this.searchText = searchText;
-        tweetStream.onTweet(tweet -> {
-            log.info("new Tweet received");
-            this.nextTweet = tweet;
-            this.lastTweetCollection = null;
-        });
+
+    private TweetDataProvider() {
+        // prevent external instantiation
     }
-    
+
+    @Override
+    public void processNewTweet(final Tweet tweet) {
+        LOGGER.info("new Tweet received");
+        if (tweet.getUser().getFollowersCount() > 25) {
+            this.nextTweet = tweet;
+        }
+        this.lastTweetCollection = null;
+    }
+
     public Tweet getTweet() {
         return this.tweet;
     }
 
     private List<Tweet> getLatestHistory() {
-        log.info("Reinit the history");
-        return tweeter.search(new TweetQuery()
-                        .query(searchText)
-                        .count(HISTORY_SIZE)).collect(Collectors.toList());        
+        LOGGER.info("Reinit the history");
+        return Tweeter.getInstance().search(new TweetQuery()
+                .query(searchText)
+                .count(HISTORY_SIZE))
+                .filter(t -> t.getUser().getFollowersCount() > 25)
+                .collect(Collectors.toList());
     }
-    
+
     public Tweet nextTweet() {
         if (null == nextTweet) {
             if (null == lastTweetCollection) {
                 lastTweetCollection = getLatestHistory();
             }
             nextTweet = lastTweetCollection.stream()
-                    .filter(tweet -> !history.contains(tweet.getId()))
+                    .filter(t -> !history.contains(t.getId()))
                     .skip((long) (Math.random() * (HISTORY_SIZE - history.size())))
                     .findFirst()
                     .orElse(null);
-        } 
+        }
         if (null != nextTweet) {
             tweet = nextTweet;
             nextTweet = null;
         }
         if (tweet != null) {
             history.addLast(tweet.getId());
-            if (history.size() > HISTORY_SIZE -1 ) {
+            if (history.size() > HISTORY_SIZE - 1) {
                 history.removeFirst();
             }
         }
@@ -101,4 +101,16 @@ public class TweetDataProvider implements DataProvider {
         return "Tweet";
     }
 
+    public static class Factory implements DataProvider.Factory {
+
+        @Override
+        public TweetDataProvider create() {
+            return new TweetDataProvider();
+        }
+
+        @Override
+        public Class<TweetDataProvider> getDataProviderClass() {
+            return TweetDataProvider.class;
+        }
+    }
 }

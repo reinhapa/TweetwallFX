@@ -24,11 +24,14 @@
 package org.tweetwallfx.tweet.api;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import org.tweetwallfx.tweet.api.entry.BasicEntry;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.TreeSet;
+import static java.util.stream.Collectors.toSet;
+import java.util.stream.IntStream;
+import org.tweetwallfx.tweet.api.entry.EmojiTweetEntry;
 import org.tweetwallfx.tweet.api.entry.HashtagTweetEntry;
 import org.tweetwallfx.tweet.api.entry.MediaTweetEntry;
 import org.tweetwallfx.tweet.api.entry.SymbolTweetEntry;
@@ -62,22 +65,74 @@ public interface Tweet extends BasicEntry {
 
     boolean isRetweet();
 
+    boolean isTruncated();
+
+    public default String getDisplayEnhancedText() {
+        return getDisplayEnhancedTextExtractor().get();
+    }
+
+    public default TextExtractor getDisplayEnhancedTextExtractor() {
+        final TextExtractor textExtractor = new TextExtractor(this);
+
+        if (-1 != getInReplyToTweetId()) {
+            Arrays.stream(getUserMentionEntries())
+                    .filter(ume -> ume.getId() == getInReplyToUserId())
+                    .filter(ume -> 0 == ume.getStart())
+                    .findAny()
+                    .ifPresent(textExtractor::getTextWithout);
+        }
+
+        textExtractor.getTextWithout(UrlTweetEntry.class);
+        textExtractor.getTextWithout(MediaTweetEntry.class);
+
+        return textExtractor;
+    }
+
+    public default EmojiTweetEntry[] getEmojiEntries() {
+        final int[] codePoints = getText().codePoints().toArray();
+
+        return IntStream.range(0, codePoints.length)
+                .filter(i -> codePoints[i] >= 0x1f000)
+                .mapToObj(i -> new EmojiTweetEntry(new String(codePoints, i, 1), i))
+                .toArray(i -> new EmojiTweetEntry[i]);
+    }
+
     public default TextExtractor getTextWithout(final Class<? extends TweetEntry> entryToRemove) {
         return new TextExtractor(this).getTextWithout(entryToRemove);
     }
 
     public static final class TextExtractor {
 
-        private final Set<Class<? extends TweetEntry>> entriesToRemove = new HashSet<>();
+        private final Set<TweetEntry> entriesToRemove = new TreeSet<>(Comparator.comparing(TweetEntry::getStart).reversed());
         private final Tweet tweet;
 
         public TextExtractor(final Tweet tweet) {
             this.tweet = tweet;
         }
 
-        public TextExtractor getTextWithout(final Class<? extends TweetEntry> entryToRemove) {
+        public TextExtractor getTextWithout(final TweetEntry entryToRemove) {
             if (null != entryToRemove) {
                 entriesToRemove.add(entryToRemove);
+            }
+
+            return this;
+        }
+
+        public TextExtractor getTextWithout(final Class<? extends TweetEntry> entryToRemove) {
+            if (null != entryToRemove) {
+                if (EmojiTweetEntry.class.isAssignableFrom(entryToRemove)) {
+                    entriesToRemove.addAll(Arrays.asList(tweet.getEmojiEntries()));
+                } else if (HashtagTweetEntry.class.isAssignableFrom(entryToRemove)) {
+                    entriesToRemove.addAll(Arrays.asList(tweet.getHashtagEntries()));
+                } else if (MediaTweetEntry.class.isAssignableFrom(entryToRemove)) {
+                    entriesToRemove.addAll(Arrays.asList(tweet.getMediaEntries()));
+                } else if (SymbolTweetEntry.class.isAssignableFrom(entryToRemove)) {
+                    entriesToRemove.addAll(Arrays.asList(tweet.getSymbolEntries()));
+                } else if (UrlTweetEntry.class.isAssignableFrom(entryToRemove)) {
+                    entriesToRemove.addAll(Arrays.asList(tweet.getUrlEntries()));
+                } else if (UserMentionTweetEntry.class.isAssignableFrom(entryToRemove)) {
+                    entriesToRemove.addAll(Arrays.asList(tweet.getUserMentionEntries()));
+                }
             }
 
             return this;
@@ -88,34 +143,29 @@ public interface Tweet extends BasicEntry {
                 return tweet.getText();
             }
 
-            final StringBuilder sb = new StringBuilder(tweet.getText());
-            final Consumer<TweetEntry> consumer = entry -> {
-                for (int i = entry.getStart(); i < entry.getEnd(); i++) {
-                    sb.setCharAt(i, ' ');
+            IntStream filteredIndexes = IntStream.empty();
+            for (TweetEntry tweetEntry : entriesToRemove) {
+                final IntStream nextFilter;
+
+                if (tweetEntry.getStart() == tweetEntry.getEnd()) {
+                    nextFilter = IntStream.of(tweetEntry.getStart());
+                } else {
+                    nextFilter = IntStream.range(tweetEntry.getStart(), tweetEntry.getEnd());
                 }
-            };
 
-            if (entriesToRemove.contains(HashtagTweetEntry.class)) {
-                Arrays.stream(tweet.getHashtagEntries()).forEach(consumer);
+                filteredIndexes = IntStream.concat(filteredIndexes, nextFilter);
             }
 
-            if (entriesToRemove.contains(MediaTweetEntry.class)) {
-                Arrays.stream(tweet.getMediaEntries()).forEach(consumer);
-            }
+            final Set<Integer> indexesToFilterOut = filteredIndexes.boxed().collect(toSet());
+            final int[] codePoints = tweet.getText().codePoints().toArray();
+            final int[] filteredCodePoints = IntStream.range(0, codePoints.length)
+                    .filter(i -> !indexesToFilterOut.contains(i))
+                    .map(i -> codePoints[i])
+                    .toArray();
 
-            if (entriesToRemove.contains(SymbolTweetEntry.class)) {
-                Arrays.stream(tweet.getSymbolEntries()).forEach(consumer);
-            }
-
-            if (entriesToRemove.contains(UrlTweetEntry.class)) {
-                Arrays.stream(tweet.getUrlEntries()).forEach(consumer);
-            }
-
-            if (entriesToRemove.contains(UserMentionTweetEntry.class)) {
-                Arrays.stream(tweet.getUserMentionEntries()).forEach(consumer);
-            }
-
-            return sb.toString().replaceAll("  *", " ");
+            return new String(filteredCodePoints, 0, filteredCodePoints.length)
+                    .replaceAll("  *", " ")
+                    .trim();
         }
     }
 
@@ -133,7 +183,6 @@ public interface Tweet extends BasicEntry {
      * boolean      isPossiblySensitive();
      * boolean      isFavorited();
      * boolean      isRetweeted();
-     * boolean      isTruncated();
      * }
      */
 }

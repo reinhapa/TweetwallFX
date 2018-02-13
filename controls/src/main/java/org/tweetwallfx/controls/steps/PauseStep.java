@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2014-2016 TweetWallFX
+ * Copyright 2014-2017 TweetWallFX
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,32 +23,84 @@
  */
 package org.tweetwallfx.controls.steps;
 
-import org.tweetwallfx.controls.stepengine.AbstractStep;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+import java.util.Objects;
+import org.tweetwallfx.controls.stepengine.Step;
 import org.tweetwallfx.controls.stepengine.StepEngine.MachineContext;
+import static org.tweetwall.util.ToString.*;
+import org.tweetwallfx.controls.stepengine.config.StepEngineSettings;
 
 /**
- *
- * @author Sven
+ * @author Sven Reimers
  */
-public class PauseStep extends AbstractStep {
+public class PauseStep implements Step {
 
-    private final long pause;
+    private final Duration pause;
 
-    public PauseStep() {
-        this(5000);
-    }
-    
-    public PauseStep(long pause) {
+    private PauseStep(final Duration pause) {
         this.pause = pause;
     }
-    
+
     @Override
-    public long preferredStepDuration(MachineContext context) {
+    public Duration preferredStepDuration(final MachineContext context) {
         return this.pause;
     }
 
     @Override
-    public void doStep(MachineContext context) {
+    public void doStep(final MachineContext context) {
         context.proceed();
+    }
+
+    /**
+     * Implementation of {@link Step.Factory} as Service implementation creating
+     * {@link PauseStep}.
+     */
+    public static final class Factory implements Step.Factory {
+
+        @Override
+        public Step create(final StepEngineSettings.StepDefinition stepDefinition) {
+            final Config config = stepDefinition.getConfig(Config.class);
+            return new PauseStep(config.getDuration());
+        }
+
+        @Override
+        public Class<PauseStep> getStepClass() {
+            return PauseStep.class;
+        }
+    }
+
+    public static class Config {
+
+        private ChronoUnit unit = ChronoUnit.SECONDS;
+        private long amount = 5;
+
+        public ChronoUnit getUnit() {
+            return unit;
+        }
+
+        public void setUnit(final ChronoUnit unit) {
+            this.unit = Objects.requireNonNull(unit, "unit must not be null!");
+        }
+
+        public long getAmount() {
+            return amount;
+        }
+
+        public void setAmount(final long amount) {
+            this.amount = amount;
+        }
+
+        private Duration getDuration() {
+            return Duration.of(getAmount(), getUnit());
+        }
+
+        @Override
+        public String toString() {
+            return createToString(this, map(
+                    "amount", getAmount(),
+                    "unit", getUnit()
+            )) + " extends " + super.toString();
+        }
     }
 }

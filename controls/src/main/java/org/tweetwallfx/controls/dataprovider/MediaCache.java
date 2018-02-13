@@ -4,8 +4,8 @@ import java.net.URL;
 import java.util.EnumSet;
 import java.util.Optional;
 
-import org.apache.log4j.LogManager;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -39,7 +39,7 @@ public enum MediaCache {
     }
 
     public boolean hasCachedMedia(long mediaId) {
-        if (imageCache.containsKey(Long.valueOf(mediaId))) {
+        if (imageCache.containsKey(mediaId)) {
             log.debug("Media id: " + mediaId + " - exists in cache");
             return true;
         }
@@ -47,10 +47,10 @@ public enum MediaCache {
     }
 
     public Optional<CachedMedia> getCachedMedia(long mediaId) {
-        return Optional.ofNullable(imageCache.get(Long.valueOf(mediaId)));
+        return Optional.ofNullable(imageCache.get(mediaId));
     }
 
     public void putCachedMedia(long mediaId, CachedMedia image) {
-        imageCache.put(Long.valueOf(mediaId), image);
+        imageCache.put(mediaId, image);
     }
 }

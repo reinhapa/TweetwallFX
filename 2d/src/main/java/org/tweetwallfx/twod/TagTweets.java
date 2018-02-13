@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2014-2016 TweetWallFX
+ * Copyright 2014-2017 TweetWallFX
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,32 +23,17 @@
  */
 package org.tweetwallfx.twod;
 
-import java.util.List;
-import org.tweetwallfx.tweet.TweetSetData;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import javafx.application.Platform;
-import javafx.concurrent.Task;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Parent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
-import org.apache.log4j.Logger;
-import org.tweetwallfx.controls.Word;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.tweetwallfx.config.Configuration;
+import org.tweetwallfx.config.TweetwallSettings;
 import org.tweetwallfx.controls.Wordle;
-import org.tweetwallfx.controls.dataprovider.ImageMosaicDataProvider;
-import org.tweetwallfx.controls.dataprovider.TagCloudDataProvider;
-import org.tweetwallfx.controls.dataprovider.TweetDataProvider;
-import org.tweetwallfx.tweet.ThreadingHelper;
-import org.tweetwallfx.tweet.api.Tweet;
-import org.tweetwallfx.tweet.api.TweetQuery;
 
 /**
- * TweetWallFX - Devoxx 2014,15,16 {@literal @}johanvos {@literal @}SvenNB
+ * TweetWallFX - Devoxx 2014-17 {@literal @}johanvos {@literal @}SvenNB
  * {@literal @}SeanMiPhillips {@literal @}jdub1581 {@literal @}JPeredaDnr
  *
  * Tasks to perform a search on Twitter for some hashtag, create an HBox with
@@ -61,72 +46,34 @@ import org.tweetwallfx.tweet.api.TweetQuery;
 public class TagTweets {
 
     private static final String STARTUP = "org.tweetwallfx.startup";
-    Logger startupLogger = Logger.getLogger(STARTUP);
+    private static final Logger STARTUP_LOGGER = LogManager.getLogger(STARTUP);
 
-    private final static int MIN_WEIGHT = 4;
-    private final static int NUM_MAX_WORDS = 40;
-    private final ExecutorService showTweetsExecutor = ThreadingHelper.createSingleThreadExecutor("ShowTweets");
     private Wordle wordle;
-    private final TweetSetData tweetSetData;
     private final BorderPane root;
-    private final HBox hBottom = new HBox();
     private final HBox hWordle = new HBox();
-    private ImageMosaicDataProvider imageMosaicDataProvider;
-    private TagCloudDataProvider tagCloudDataProvider;
 
-    public TagTweets(final TweetSetData tweetSetData, final BorderPane root) {
-        this.tweetSetData = tweetSetData;
+    public TagTweets(final BorderPane root) {
         this.root = root;
     }
 
     public void start() {
-        startupLogger.trace("TagTweets.start");
+        STARTUP_LOGGER.trace("TagTweets.start");
         hWordle.setAlignment(Pos.CENTER);
-        hWordle.setPadding(new Insets(20));
         hWordle.prefWidthProperty().bind(root.widthProperty());
         hWordle.prefHeightProperty().bind(root.heightProperty());
 
         root.setCenter(hWordle);
+        String searchText = Configuration.getInstance().getConfigTyped(TweetwallSettings.CONFIG_KEY, TweetwallSettings.class).getQuery();
+        STARTUP_LOGGER.trace("** 1. Creating Tag Cloud for " + searchText);
 
-        startupLogger.trace("** 1. Creating Tag Cloud for " + tweetSetData.getSearchText());
+        STARTUP_LOGGER.trace("** create wordle");
 
-        imageMosaicDataProvider = new ImageMosaicDataProvider(tweetSetData.getTweetStream());
-        tagCloudDataProvider = new TagCloudDataProvider(tweetSetData.getTweetStream());
-        
-        List<Tweet> tweets = tweetSetData.getTweeter().searchPaged(new TweetQuery().query(tweetSetData.getSearchText()).count(100), 20)
-                .collect(Collectors.toList());
-        
-        tweets.stream().forEach(tweet -> {
-            imageMosaicDataProvider.processTweet(tweet);
-            tagCloudDataProvider.processTweet(tweet);
-        });        
-        
-        startupLogger.trace("** create wordle");
-        createWordle();
-        startupLogger.trace("** create wordle done");
+        wordle = new Wordle();
+        hWordle.getChildren().setAll(wordle);
+        wordle.prefWidthProperty().bind(hWordle.widthProperty());
+        wordle.prefHeightProperty().bind(hWordle.heightProperty());
 
-        startupLogger.trace("** 2. Starting new Tweets search for " + tweetSetData.getSearchText());
+        STARTUP_LOGGER.trace("** create wordle done");
+        STARTUP_LOGGER.trace("** 2. Starting new Tweets search for " + searchText);
     }
-
-    public void stop() {
-        tweetSetData.getTweeter().shutdown();
-        showTweetsExecutor.shutdown();
-        try {
-            showTweetsExecutor.awaitTermination(5, TimeUnit.SECONDS);
-        } catch (InterruptedException ex) {
-        }
-    }
-
-    private void createWordle() {
-        if (null == wordle) {
-            wordle = new Wordle();
-            hWordle.getChildren().setAll(wordle);
-            wordle.prefWidthProperty().bind(hWordle.widthProperty());
-            wordle.prefHeightProperty().bind(hWordle.heightProperty());
-            wordle.addDataProvider(new TweetDataProvider(tweetSetData.getTweeter(), tweetSetData.getTweetStream(), tweetSetData.getSearchText()));
-            wordle.addDataProvider(tagCloudDataProvider);
-            wordle.addDataProvider(imageMosaicDataProvider);
-        }
-    }
-
 }
