@@ -24,6 +24,15 @@
 package org.tweetwallfx.generic;
 
 import java.util.Optional;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.tweetwallfx.config.Configuration;
+import org.tweetwallfx.config.TweetwallSettings;
+import org.tweetwallfx.tweet.StringPropertyAppender;
+import org.tweetwallfx.tweet.api.Tweeter;
+import org.tweetwallfx.twod.TagTweets;
+
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -32,27 +41,15 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.LoggerContext;
-import org.apache.logging.log4j.core.config.LoggerConfig;
-import org.tweetwallfx.config.Configuration;
-import org.tweetwallfx.config.TweetwallSettings;
-import org.tweetwallfx.tweet.StringPropertyAppender;
-import org.tweetwallfx.tweet.api.Tweeter;
-import org.tweetwallfx.twod.TagTweets;
 
 public class Main extends Application {
-
-    private static final String STARTUP = "org.tweetwallfx.startup";
     private static final Logger LOG = LogManager.getLogger(Main.class);
-    private static final Logger LOGGER = LogManager.getLogger(STARTUP);
 
     @Override
     public void start(Stage primaryStage) {
+        LOG.info("initializing...");
         BorderPane borderPane = new BorderPane();
-        Scene scene = new Scene(borderPane, 1920, 1280);
+        Scene scene = new Scene(borderPane, 1920, 1080);
         borderPane.getStyleClass().add("splash");
 
         final TweetwallSettings tweetwallSettings
@@ -66,13 +63,7 @@ public class Main extends Application {
                 .ifPresent(scene.getStylesheets()::add);
 
         StringPropertyAppender spa = new StringPropertyAppender();
-
-        LoggerContext context = LoggerContext.getContext(false);
-        org.apache.logging.log4j.core.config.Configuration config = context.getConfiguration();
         spa.start();
-        LoggerConfig slc = config.getLoggerConfig(LOGGER.getName());
-        slc.setLevel(Level.TRACE);
-        slc.addAppender(spa, Level.TRACE, null);
 
         HBox statusLineHost = new HBox();
         Text statusLineText = new Text();
@@ -96,6 +87,7 @@ public class Main extends Application {
         primaryStage.setTitle(tweetwallSettings.getTitle());
         primaryStage.setScene(scene);
 
+        LOG.info("start showing primary stage");
         primaryStage.show();
         primaryStage.setFullScreen(!Boolean.getBoolean("org.tweetwallfx.disable-full-screen"));
     }
